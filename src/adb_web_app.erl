@@ -11,7 +11,8 @@
 
 -export([start/2, stop/1]).
 
--define(DEFAULT_PORT, 4321). 
+-define(DEFAULT_WEB_PORT, 4321). 
+-define(DEFAULT_CORE_PORT, 1234).
 
 % this operation is called when the 
 % OTP system wants to start our application. 
@@ -23,21 +24,28 @@ start(_Type, _StartArgs) ->
 
     lager:info("starting the AngraDB Web server ~n"), 
         
-    Port = case application:get_env(tcp_interface, port) of 
-	       {ok, P} -> P;
-	       undefined -> ?DEFAULT_PORT
-	   end, 
+    WPort = ?DEFAULT_WEB_PORT, 
+    CPort = ?DEFAULT_CORE_PORT, 
     
-  %  {ok, LSock} = gen_tcp:listen(Port, [{active,true}]),
     
-    lager:info("listening to TCP requests on port ~w ~n", [Port]),
+    lager:info("listening to HTTP requests on port ~w ~n", [WPort]),
+    lager:info("listening to HTTP requests on port ~w ~n", [CPort]),
     
-    case adb_web_sup:start_link(Port) of 
-	{ok, Pid} -> adb_web_sup:start_child(),
-		      {ok, Pid};	 
-	Other -> error_logger:error_msg(" error: ~s", [Other]), 
-		 {error, Other}
-     end. 
+    {ok, LSock} = gen_tcp:listen(CPort, [{active,true}]),
+ 
+    case adb_web_master_sup:start_link([LSock, WPort]) of 
+	{ok, Pid} -> adb_web_sup:start_child(), 
+                     adb_sup:start_child(), 
+                     {ok, Pid};
+	Other -> {error, Other}
+    end. 
+        
+    %% case adb_web_sup:start_link(Port) of 
+    %% 	{ok, Pid} -> adb_web_sup:start_child(),
+    %% 		      {ok, Pid};	 
+    %% 	Other -> error_logger:error_msg(" error: ~s", [Other]), 
+    %% 		 {error, Other}
+    %%  end. 
 
 stop(_State) ->
     ok. 

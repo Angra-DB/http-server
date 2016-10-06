@@ -17,7 +17,7 @@ init([]) ->
     {ok, []}.
 
 get({http_request, 'GET', {_, _}, _}, _Head, _UserData)->
-    gen_web_server:http_reply(200, "Hello World").
+    gen_web_server:http_reply(200, "<h1>It works</h1>").
 
 post(_, _, _, _) ->
  gen_web_server:http_reply(404).
