@@ -16,10 +16,7 @@ standar messat It works!
 Clone the repository and run the following commands:
 
     $ rebar3 shell
-    erlang> application:start(compiler).
-    erlang> application:start(syntax_tools).
-    erlang> application:start(lager).
-    erlang> application:start(adb_web).
+    erlang> adb_web:start().
 
 Than, using curl or a web browser, send an HTTP GET request
 to http://localhost:4321
