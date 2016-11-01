@@ -16,8 +16,9 @@ start_link(IP, Port) ->
 init([]) ->
     {ok, []}.
 
-get({http_request, 'GET', {_, _}, _}, _Head, _UserData)->
-    gen_web_server:http_reply(200, "<h1>It works</h1>").
+get({http_request, 'GET', {_, Path}, _}, _Head, _UserData)->
+    Tokens = string:tokens(binary:bin_to_list(Path), "/"),
+    gen_web_server:http_reply(200, processRequest(get, Tokens)).
 
 post(_, _, _, _) ->
  gen_web_server:http_reply(404).
@@ -29,5 +30,12 @@ delete(_, _, _) ->
  gen_web_server:http_reply(404).
 
     
+processRequest(get, ["db", DBName, Id]) -> 
+ "Get works " ++ DBName;
 
+processRequest(get, _) -> "It works". 
+   
+				      
+				       
+   
     
