@@ -29,7 +29,7 @@ start(_Type, _StartArgs) ->
     
     
     lager:info("listening to HTTP requests on port ~w ~n", [WPort]),
-    lager:info("listening to HTTP requests on port ~w ~n", [CPort]),
+    lager:info("listening to TCP  requests on port ~w ~n", [CPort]),
     
     {ok, LSock} = gen_tcp:listen(CPort, [{active,true}]),
  
