@@ -20,9 +20,13 @@
 % operation of this model, which is responsible 
 % for starting the root supervisor. 
 
-kickoff(Module) ->
+kickoff(web) ->
+	application:start(adb_web);
+kickoff(all) ->
 	lager:start(),
-	application:start(Module).
+	application:start(adb_web);
+kickoff(_) ->
+	invalid_argument.
 
 start(_Type, _StartArgs) ->
 
