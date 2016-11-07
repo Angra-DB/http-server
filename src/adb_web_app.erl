@@ -9,7 +9,7 @@
 
 -behavior(application). 
 
--export([start/2, stop/1]).
+-export([start/2, stop/1, kickoff/1]).
 
 -define(DEFAULT_WEB_PORT, 4321). 
 -define(DEFAULT_CORE_PORT, 1234).
@@ -19,6 +19,14 @@
 % actually, this is the most relevant 
 % operation of this model, which is responsible 
 % for starting the root supervisor. 
+
+kickoff(web) ->
+	application:start(adb_web);
+kickoff(all) ->
+	lager:start(),
+	application:start(adb_web);
+kickoff(_) ->
+	invalid_argument.
 
 start(_Type, _StartArgs) ->
 
