@@ -23,6 +23,7 @@ get({http_request, 'GET', {_, Path}, _}, _Head, _UserData)->
 post({http_request, 'POST', {_, Path}, _}, _Head, Body, UserData) ->
     Tokens = string:tokens(binary:bin_to_list(Path), "/"),
     Payload = string:join([[C] || C <- binary:bin_to_list(Body)], ""),
+    printElements(lists:append(Tokens, Payload)),
     processRequest({post, lists:append(Tokens, Payload)}). 
 
 put(_, _, _, _) ->
@@ -47,9 +48,8 @@ sendCommand(Socket, Command) ->
 processRequest({get, ["db", DBName, Id]}) -> 
  try 
   Socket = connect(), 
-  Res1  = sendCommand(Socket, "connect " ++ DBName),
+  _Res1  = sendCommand(Socket, "connect " ++ DBName),
   Packet = sendCommand(Socket, "lookup " ++ Id),
-  io:format("musica: ~p", [Packet]),
   gen_tcp:close(Socket),
   binary:bin_to_list(Packet)
  catch  
@@ -58,18 +58,22 @@ processRequest({get, ["db", DBName, Id]}) ->
 
 processRequest({get, _}) -> "It works";
    
-processRequest ({post, ["db", DBName, "doc", Body]}) ->
- case gen_tcp:connect({127,0,0,1}, 1234, [binary, {active, false}]) of
- 	{ok, Socket} -> gen_tcp:send (Socket, "save " ++ Body),
- 	                case gen_tcp:recv(Socket, 0, 500) of
- 	                	{ok, Packet}      -> gen_web_server:http_reply(200, Packet);
- 	                	{error, Reason}   -> io:format ("~p", [Reason]),
- 	                						 gen_web_server:http_reply(500, "Internal server error")
- 	                end,
- 	                gen_web_server:http_reply(200, "ok");
-  _ -> gen_web_server:http_reply(500, "Internal server error")
+processRequest ({post, ["db", DBName, "doc"| Body]}) ->
+ try 
+   Socket = connect(),
+   _Res1  = sendCommand(Socket, "connect " ++ DBName),
+   Packet = sendCommand(Socket, "save " ++ Body), 
+   gen_tcp:close(Socket),
+   binary:bin_to_list(Packet)
+ catch
+   Reason -> gen_web_server:http_reply(500, Reason)
  end;
  	           
-processRequest ({post, A}) -> gen_web_server:http_reply(400, "Bad request"), 
-  io:format("~p ~n", [A]). 
+processRequest ({post, A}) -> 
+    gen_web_server:http_reply(400, "Bad request"), 
+    io:format("~p ~n", [A]). 
     
+printElements([]) -> io:format("]~n", []); 
+printElements([H|Tail]) -> io:format("~p",[H]), 
+			   printElements(Tail).
+		 
