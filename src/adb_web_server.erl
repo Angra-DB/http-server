@@ -18,12 +18,12 @@ init([]) ->
 
 get({http_request, 'GET', {_, Path}, _}, _Head, _UserData)->
     Tokens = string:tokens(binary:bin_to_list(Path), "/"),
-	processRequest({get, Tokens}).
+    processRequest({get, Tokens}).
 
 post({http_request, 'POST', {_, Path}, _}, _Head, Body, UserData) ->
     Tokens = string:tokens(binary:bin_to_list(Path), "/"),
     Payload = string:join([[C] || C <- binary:bin_to_list(Body)], ""),
-	processRequest({post, lists:append(Tokens, Payload)}). 
+    processRequest({post, lists:append(Tokens, Payload)}). 
 
 put(_, _, _, _) ->
  gen_web_server:http_reply(404).
@@ -31,18 +31,30 @@ put(_, _, _, _) ->
 delete(_, _, _) ->
  gen_web_server:http_reply(404).
 
-    
+connect() ->
+     case gen_tcp:connect({127,0,0,1}, 1234, [binary, {active, false}]) of
+	 {ok, Socket} -> Socket;			 
+       _ -> throw(could_not_connect_to_the_server)
+   end.
+
+sendCommand(Socket, Command) ->
+    gen_tcp:send(Socket, Command),
+    case gen_tcp:recv(Socket, 0, 500) of
+	{ok,Packet} ->  Packet;
+	{error, Reason} -> throw(Reason)
+    end.
+ 
 processRequest({get, ["db", DBName, Id]}) -> 
- case gen_tcp:connect({127,0,0,1}, 1234, [binary, {active, false}]) of
- 	{ok, Socket} -> gen_tcp:send(Socket, "lookup " ++ Id),
- 					case gen_tcp:recv(Socket, 0, 500) of
- 						{ok,Packet} 	-> 	gen_web_server:http_reply(200, Packet);				
- 						{error, Reason} -> 	io:format("~p", [Reason]),
- 											gen_web_server:http_reply(500, "Internal server error")
- 					end,
- 					gen_web_server:http_reply(200, "ok");				
- 	_ -> gen_web_server:http_reply(500, "Internal server error")
- end;
+ try 
+  Socket = connect(), 
+  Res1  = sendCommand(Socket, "connect " ++ DBName),
+  Packet = sendCommand(Socket, "lookup " ++ Id),
+  io:format("musica: ~p", [Packet]),
+  gen_tcp:close(Socket),
+  binary:bin_to_list(Packet)
+ catch  
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;  
 
 processRequest({get, _}) -> "It works";
    
