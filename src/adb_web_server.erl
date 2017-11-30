@@ -20,7 +20,7 @@ get({http_request, 'GET', {_, Path}, _}, _Head, _UserData)->
     Tokens = string:tokens(binary:bin_to_list(Path), "/"),
     processRequest({get, Tokens}).
 
-post({http_request, 'POST', {_, Path}, _}, _Head, Body, UserData) ->
+post({http_request, 'POST', {_, Path}, _}, _Head, Body, _UserData) ->
     Tokens = string:tokens(binary:bin_to_list(Path), "/"),
     Payload = string:join([[C] || C <- binary:bin_to_list(Body)], ""),
     printElements(lists:append(Tokens, Payload)),
@@ -29,8 +29,9 @@ post({http_request, 'POST', {_, Path}, _}, _Head, Body, UserData) ->
 put(_, _, _, _) ->
  gen_web_server:http_reply(404).
 
-delete(_, _, _) ->
- gen_web_server:http_reply(404).
+delete({http_request, 'DELETE', {_, Path}, _}, _Head, _UserData)->
+    Tokens = string:tokens(binary:bin_to_list(Path), "/"),
+    processRequest({delete, Tokens}).
 
 connect() ->
      case gen_tcp:connect({127,0,0,1}, 1234, [binary, {active, false}]) of
@@ -51,24 +52,68 @@ processRequest({get, ["db", DBName, Id]}) ->
   _Res1  = sendCommand(Socket, "connect " ++ DBName),
   Packet = sendCommand(Socket, "lookup " ++ Id),
   gen_tcp:close(Socket),
-  binary:bin_to_list(Packet)
+  gen_web_server:http_reply(200, Packet)
  catch  
    Reason -> gen_web_server:http_reply(500, Reason)
  end;  
 
-processRequest({get, _}) -> "It works";
+processRequest({get, _}) -> 
+ gen_web_server:http_reply(200);
    
+processRequest ({post, ["db", DBName, "update", Id| Body]}) ->
+ try 
+   Socket = connect(),
+   _Res1  = sendCommand(Socket, "connect " ++ DBName),
+   Packet = sendCommand(Socket, "update " ++ Id ++ " " ++ Body), 
+   gen_tcp:close(Socket),
+   gen_web_server:http_reply(200)
+ catch
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;
+
 processRequest ({post, ["db", DBName, "doc"| Body]}) ->
  try 
    Socket = connect(),
    _Res1  = sendCommand(Socket, "connect " ++ DBName),
    Packet = sendCommand(Socket, "save " ++ Body), 
    gen_tcp:close(Socket),
-   binary:bin_to_list(Packet)
+   gen_web_server:http_reply(200, Packet)
+ catch
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;
+
+processRequest ({post, ["db", "create"| Body]}) ->
+ try 
+   Socket = connect(),
+   Packet  = sendCommand(Socket, "create_db " ++ Body),
+   gen_tcp:close(Socket),
+   gen_web_server:http_reply(200, Packet)
  catch
    Reason -> gen_web_server:http_reply(500, Reason)
  end;
  	           
+processRequest ({delete, ["db", DBName, Id]}) ->
+ try 
+   Socket = connect(),
+   _Res1  = sendCommand(Socket, "connect " ++ DBName),
+   _Res2  = sendCommand(Socket, "delete " ++ Id),
+   gen_tcp:close(Socket),
+   gen_web_server:http_reply(200)
+ catch
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;
+
+processRequest ({delete, ["db", DBName]}) ->
+ try 
+   Socket = connect(),
+   _Res1  = sendCommand(Socket, "connect_db " ++ DBName),
+   Packet  = sendCommand(Socket, "delete_db " ++ DBName),
+   gen_tcp:close(Socket),
+   gen_web_server:http_reply(200, Packet)
+ catch
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;
+
 processRequest ({post, A}) -> 
     gen_web_server:http_reply(400, "Bad request"), 
     io:format("~p ~n", [A]). 

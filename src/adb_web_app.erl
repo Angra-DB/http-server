@@ -39,7 +39,7 @@ start(_Type, _StartArgs) ->
     lager:info("listening to HTTP requests on port ~w ~n", [WPort]),
     lager:info("listening to TCP  requests on port ~w ~n", [CPort]),
     
-    {ok, LSock} = gen_tcp:listen(CPort, [{active,true}]),
+    {ok, LSock} = gen_tcp:listen(1234, [{active,true}]),
  
     case adb_web_master_sup:start_link([LSock, WPort]) of 
 	{ok, Pid} -> adb_web_sup:start_child(), 
