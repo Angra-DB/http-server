@@ -46,6 +46,13 @@ sendCommand(Socket, Command) ->
 	{error, Reason} -> throw(Reason)
     end.
  
+processRequest({get, ["api"]}) -> 
+ try 
+  gen_web_server:http_reply(301, [{"Location" ,"https://app.swaggerhub.com/apis/scartezini/angraDB/1.0.0"}],[])
+ catch  
+   Reason -> gen_web_server:http_reply(500, Reason)
+ end;  
+
 processRequest({get, ["db", DBName, Id]}) -> 
  try 
   Socket = connect(), 
